@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "Data Pegawai dan Tenaga Kesehatan Puskesmas Boganatar",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "nip": { "type": "string" },
+        "employmentStatus": { "type": "string" },
+        "position": { "type": "string" },
+        "professionCategory": { "type": "string" },
+        "education": { "type": "string" },
+        "workUnit": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "gender": { "type": "string" },
+        "birthPlace": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "tmt": { "type": "string" },
+        "strNumber": { "type": "string" },
+        "strExpiry": { "type": "string" },
+        "sipNumber": { "type": "string" },
+        "sipExpiry": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "fullName", "employmentStatus", "position"]
+    },
+    "TerritoryProfile": {
+      "title": "TerritoryProfile",
+      "description": "Profil Wilayah dan Data 5 Desa Binaan UPT Puskesmas Boganatar",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "overview": { "type": "string" },
+        "vision": { "type": "string" },
+        "mission": { "type": "array", "items": { "type": "string" } },
+        "villages": { "type": "array", "items": { "type": "object" } },
+        "posyanduList": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "overview", "villages"]
+    },
+    "SPMRecord": {
+      "title": "SPMRecord",
+      "description": "Data 12 Indikator Standar Pelayanan Minimal (SPM) Kesehatan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "title": { "type": "string" },
+        "targetPercentage": { "type": "number" },
+        "totalTargetPopulation": { "type": "number" },
+        "totalAchieved": { "type": "number" },
+        "villageBreakdown": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "code", "title", "targetPercentage"]
+    }
+  },
+  "firestore": {
+    "employees": {
+      "entity": "Employee",
+      "description": "Koleksi data kepegawaian Puskesmas Boganatar"
+    },
+    "territory": {
+      "entity": "TerritoryProfile",
+      "description": "Data profil wilayah dan desa binaan"
+    },
+    "spm": {
+      "entity": "SPMRecord",
+      "description": "Koleksi 12 indikator SPM Kesehatan"
+    }
+  }
+}

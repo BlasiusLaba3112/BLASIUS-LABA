@@ -1,0 +1,27 @@
+{
+  "name": "SIMPEG UPT Puskesmas Boganatar",
+  "short_name": "SIMPEG Boganatar",
+  "description": "Sistem Informasi Manajemen Kepegawaian UPT Puskesmas Boganatar Kabupaten Sikka",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

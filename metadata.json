@@ -1,0 +1,6 @@
+{
+  "name": "SIMPEG UPT Puskesmas Boganatar",
+  "description": "Sistem Informasi Manajemen Kepegawaian, Wilayah Kerja 5 Desa, & Monitoring 12 SPM Kesehatan UPT Puskesmas Boganatar Kabupaten Sikka - CRUD Pegawai, Monitoring STR/SIP, Profil Visi Misi, Data 5 Desa & 16 Posyandu, Capaian 12 Standar Pelayanan Minimal, Sinkronisasi Google Sheets, dan Cetak Laporan Resmi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
