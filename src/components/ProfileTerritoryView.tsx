@@ -20,7 +20,8 @@ import {
   Search,
   Filter,
   Activity,
-  RotateCcw
+  RotateCcw,
+  Lock
 } from 'lucide-react';
 import { PuskesmasProfileData, VillageTerritory, PosyanduInfo } from '../types/profileTerritory';
 import { PuskesmasInfo } from '../types/employee';
@@ -28,7 +29,8 @@ import { PuskesmasInfo } from '../types/employee';
 interface ProfileTerritoryViewProps {
   profileData: PuskesmasProfileData;
   puskesmasInfo: PuskesmasInfo;
-  onUpdateProfileData: (data: PuskesmasProfileData) => void;
+  isAdmin?: boolean;
+  onUpdateProfileData?: (data: PuskesmasProfileData) => void;
   onOpenEditProfile: () => void;
   onOpenEditVillage: (village: VillageTerritory) => void;
   onOpenAddPosyandu: (villageId?: string) => void;
@@ -36,18 +38,21 @@ interface ProfileTerritoryViewProps {
   onDeletePosyandu: (villageId: string, posyanduId: string) => void;
   onOpenPrintModal: () => void;
   onResetDefaultData: () => void;
+  onRequireAdmin?: () => void;
 }
 
 export const ProfileTerritoryView: React.FC<ProfileTerritoryViewProps> = ({
   profileData,
   puskesmasInfo,
+  isAdmin = false,
   onOpenEditProfile,
   onOpenEditVillage,
   onOpenAddPosyandu,
   onOpenEditPosyandu,
   onDeletePosyandu,
   onOpenPrintModal,
-  onResetDefaultData
+  onResetDefaultData,
+  onRequireAdmin
 }) => {
   const [activeTab, setActiveTab] = useState<'visi_misi' | 'wilayah_desa' | 'posyandu'>('wilayah_desa');
   const [selectedVillageFilter, setSelectedVillageFilter] = useState<string>('ALL');
@@ -104,11 +109,18 @@ export const ProfileTerritoryView: React.FC<ProfileTerritoryViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               id="btn-open-edit-profile"
-              onClick={onOpenEditProfile}
+              onClick={() => {
+                if (!isAdmin) {
+                  if (onRequireAdmin) onRequireAdmin();
+                  return;
+                }
+                onOpenEditProfile();
+              }}
               className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title={isAdmin ? "Edit Visi & Misi" : "Hanya Admin yang dapat mengedit (Klik untuk Login)"}
             >
-              <Edit className="w-4 h-4 text-blue-400" />
-              <span>Edit Visi & Misi</span>
+              {isAdmin ? <Edit className="w-4 h-4 text-blue-400" /> : <Lock className="w-3.5 h-3.5 text-amber-400" />}
+              <span>{isAdmin ? 'Edit Visi & Misi' : 'Edit (Admin)'}</span>
             </button>
 
             <button
@@ -122,11 +134,18 @@ export const ProfileTerritoryView: React.FC<ProfileTerritoryViewProps> = ({
 
             <button
               id="btn-add-posyandu-main"
-              onClick={() => onOpenAddPosyandu()}
+              onClick={() => {
+                if (!isAdmin) {
+                  if (onRequireAdmin) onRequireAdmin();
+                  return;
+                }
+                onOpenAddPosyandu();
+              }}
               className="px-3.5 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title={isAdmin ? "Tambah Posyandu" : "Hanya Admin yang dapat menambah (Klik untuk Login)"}
             >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Posyandu</span>
+              {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-300" />}
+              <span>{isAdmin ? 'Tambah Posyandu' : 'Tambah (Admin)'}</span>
             </button>
           </div>
         </div>
@@ -351,11 +370,22 @@ export const ProfileTerritoryView: React.FC<ProfileTerritoryViewProps> = ({
                       <td className="px-3 py-3 text-right">
                         <button
                           id={`btn-edit-village-${village.id}`}
-                          onClick={() => onOpenEditVillage(village)}
-                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          onClick={() => {
+                            if (!isAdmin) {
+                              if (onRequireAdmin) onRequireAdmin();
+                              return;
+                            }
+                            onOpenEditVillage(village);
+                          }}
+                          className={`px-2.5 py-1.5 border rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer ${
+                            isAdmin
+                              ? 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200'
+                              : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+                          }`}
+                          title={isAdmin ? `Edit data ${village.name}` : `Hanya Admin yang dapat mengedit (Klik untuk Login)`}
                         >
-                          <Edit className="w-3.5 h-3.5" />
-                          <span>Edit</span>
+                          {isAdmin ? <Edit className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-600" />}
+                          <span>{isAdmin ? 'Edit' : 'Edit (Admin)'}</span>
                         </button>
                       </td>
                     </tr>
@@ -405,11 +435,21 @@ export const ProfileTerritoryView: React.FC<ProfileTerritoryViewProps> = ({
                       </p>
                     </div>
                     <button
-                      onClick={() => onOpenEditVillage(village)}
-                      className="p-1.5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700 rounded-lg transition-colors"
-                      title="Edit Data Desa"
+                      onClick={() => {
+                        if (!isAdmin) {
+                          if (onRequireAdmin) onRequireAdmin();
+                          return;
+                        }
+                        onOpenEditVillage(village);
+                      }}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isAdmin 
+                          ? 'bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700' 
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                      }`}
+                      title={isAdmin ? "Edit Data Desa" : "Hanya Admin yang berhak mengedit (Klik untuk Login)"}
                     >
-                      <Edit className="w-4 h-4" />
+                      {isAdmin ? <Edit className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-600" />}
                     </button>
                   </div>
 

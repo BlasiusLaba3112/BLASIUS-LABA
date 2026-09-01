@@ -133,9 +133,6 @@ export const EmployeeProfilePrint: React.FC<EmployeeProfilePrintProps> = ({
               </div>
               <p className="text-slate-700 font-semibold">{employee.jobTitle}</p>
               <p className="text-slate-600">Unit Kerja: <strong>UPT PUSKESMAS BOGANATAR</strong></p>
-              <p className="text-slate-500 text-[11px]">
-                Status Keanggotaan: {employee.staffCategory === 'Nakes' ? 'Tenaga Kesehatan (Nakes Pelayanan)' : 'Non-Tenaga Medis'} &bull; Jabatan {employee.positionType}
-              </p>
             </div>
 
             {/* Passport Photo 3x4 */}
@@ -251,11 +248,36 @@ export const EmployeeProfilePrint: React.FC<EmployeeProfilePrintProps> = ({
                   <td className="py-1.5 text-center">:</td>
                   <td className="py-1.5 text-slate-900">{employee.positionType}</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-slate-100">
                   <td className="py-1.5 font-semibold text-slate-700">Unit Kerja Penempatan</td>
                   <td className="py-1.5 text-center">:</td>
                   <td className="py-1.5 font-bold text-slate-950">{employee.department}</td>
                 </tr>
+                {(employee.isVillageHealthWorker || employee.assignedVillage) && (
+                  <>
+                    <tr className="border-b border-slate-100 bg-emerald-50/40">
+                      <td className="py-1.5 font-semibold text-emerald-900">Penugasan Nakes Desa</td>
+                      <td className="py-1.5 text-center text-emerald-900">:</td>
+                      <td className="py-1.5 font-bold text-emerald-900">
+                        {employee.villageFacilityType || 'Pustu'} {employee.assignedVillage} ({employee.villageRole || 'Bidan / Perawat Desa'})
+                      </td>
+                    </tr>
+                    {employee.villageAssignmentSK && (
+                      <tr className="border-b border-slate-100 bg-emerald-50/40">
+                        <td className="py-1.5 font-semibold text-slate-700">No. SK Penugasan Desa</td>
+                        <td className="py-1.5 text-center">:</td>
+                        <td className="py-1.5 font-mono text-slate-900">{employee.villageAssignmentSK}</td>
+                      </tr>
+                    )}
+                    {employee.assignedPosyandus && employee.assignedPosyandus.length > 0 && (
+                      <tr className="border-b border-slate-100 bg-emerald-50/40">
+                        <td className="py-1.5 font-semibold text-slate-700">Posyandu Binaan</td>
+                        <td className="py-1.5 text-center">:</td>
+                        <td className="py-1.5 text-slate-900">{employee.assignedPosyandus.join(', ')}</td>
+                      </tr>
+                    )}
+                  </>
+                )}
               </tbody>
             </table>
           </div>

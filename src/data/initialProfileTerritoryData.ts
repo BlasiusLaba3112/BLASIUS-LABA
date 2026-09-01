@@ -539,14 +539,14 @@ export const INITIAL_PROFILE_TERRITORY_DATA: PuskesmasProfileData = {
     },
     {
       id: 'desa-04',
-      name: 'Desa Udekduen',
+      name: 'Desa Udek Duen',
       headOfVillage: 'Siprianus Seke',
       phoneHeadOfVillage: '081338876543',
       areaKm2: 22.40,
       distanceToPuskesmasKm: 6.8,
       travelTimeMinutes: 12,
       geographicType: 'Perbukitan / Pegunungan',
-      pustuPoskesdes: 'Poskesdes Udekduen',
+      pustuPoskesdes: 'Poskesdes Udek Duen',
       pustuStaff: 'Maria Ose, A.Md.Keb & Kornelia Heni, S.Tr.Keb',
       population: {
         familyCount: 410,

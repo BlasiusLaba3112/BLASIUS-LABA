@@ -58,6 +58,10 @@ import { SPMView } from './components/SPMView';
 import { EditSPMModal } from './components/EditSPMModal';
 import { PrintSPMModal } from './components/PrintSPMModal';
 
+// Attendance / Daftar Hadir Pegawai
+import { EmployeeMonthlyAttendance } from './types/attendance';
+import { AttendanceView } from './components/AttendanceView';
+
 // Authentication
 import { AuthUser, REGISTERED_CREDENTIALS, isUserAdmin } from './types/auth';
 import { LoginModal } from './components/LoginModal';
@@ -73,9 +77,21 @@ import {
   subscribeSPM,
   saveSPMIndicatorToDb,
   saveSPMBatch,
+  subscribeAttendance,
+  saveAttendanceToDb,
+  saveAttendanceBatch,
   seedInitialDatabaseIfEmpty,
   SyncStatus
 } from './services/firestoreDb';
+
+import {
+  getPendingSyncQueue,
+  enqueueSyncAction,
+  flushSyncQueue,
+  checkTrueOnlineStatus,
+  setupNetworkListeners
+} from './services/offlineSync';
+import { SyncManagerModal } from './components/SyncManagerModal';
 
 import { 
   CheckCircle2, 
@@ -94,12 +110,16 @@ import {
   Target,
   HeartHandshake,
   LogOut,
-  Lock
+  Lock,
+  Cloud,
+  CloudOff,
+  RefreshCw
 } from 'lucide-react';
 
 const STORAGE_KEY = 'simpeg_puskesmas_boganatar_v2';
 const TERRITORY_STORAGE_KEY = 'simpeg_profile_territory_data_v2';
 const SPM_STORAGE_KEY = 'simpeg_spm_12_indicators_v2';
+const ATTENDANCE_STORAGE_KEY = 'simpeg_attendance_records_v2';
 
 export default function App() {
   const [employees, setEmployees] = useState<Employee[]>(() => {
@@ -149,9 +169,28 @@ export default function App() {
     return INITIAL_SPM_INDICATORS;
   });
 
-  // Cloud Database Sync Status
+  // Attendance / Daftar Hadir Records State
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, EmployeeMonthlyAttendance>>(() => {
+    try {
+      const saved = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading attendance data', e);
+    }
+    return {};
+  });
+
+  // Cloud Database Sync Status & Offline Queue
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('connected');
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(() => getPendingSyncQueue().length);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // User Authentication State (Credentials: shyllpb@2026 / Boganatar@2026)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
@@ -185,12 +224,37 @@ export default function App() {
 
   const puskesmasInfo = PUSKESMAS_BOGANATAR_INFO;
 
-  // Real-time Cloud Database Integration (Firestore)
+  // Real-time Cloud Database Integration (Firestore) & Offline Sync Engine
   useEffect(() => {
     // 1. Initial seed check if database is empty on first startup
     seedInitialDatabaseIfEmpty(INITIAL_EMPLOYEES, INITIAL_PROFILE_TERRITORY_DATA, INITIAL_SPM_INDICATORS);
 
-    // 2. Subscribe to Employees real-time updates
+    // 2. Setup offline/online network listener with automatic queue flushing
+    const cleanupNetwork = setupNetworkListeners(
+      (online) => {
+        setIsOnline(online);
+        setSyncStatus(online ? 'connected' : 'offline');
+        setPendingSyncCount(getPendingSyncQueue().length);
+        if (!online) {
+          showToast('Mode Offline Aktif: Perubahan data tetap tersimpan aman di perangkat.', 'info');
+        } else {
+          showToast('Koneksi Internet Aktif: Menyinkronkan data antrean...', 'success');
+        }
+      },
+      (syncedCount) => {
+        setPendingSyncCount(getPendingSyncQueue().length);
+        showToast(`Sinkronisasi Berhasil: ${syncedCount} data offline telah diunggah ke Cloud Firestore!`, 'success');
+      }
+    );
+
+    // Initial true online check
+    checkTrueOnlineStatus().then((online) => {
+      setIsOnline(online);
+      setSyncStatus(online ? 'connected' : 'offline');
+      setPendingSyncCount(getPendingSyncQueue().length);
+    });
+
+    // 3. Subscribe to Employees real-time updates
     const unsubEmployees = subscribeEmployees(
       (cloudEmployees) => {
         if (cloudEmployees && cloudEmployees.length > 0) {
@@ -204,7 +268,7 @@ export default function App() {
       }
     );
 
-    // 3. Subscribe to Territory & 5 Villages real-time updates
+    // 4. Subscribe to Territory & 5 Villages real-time updates
     const unsubTerritory = subscribeTerritory(
       (cloudTerritory) => {
         if (cloudTerritory && cloudTerritory.villages && cloudTerritory.villages.length > 0) {
@@ -216,7 +280,7 @@ export default function App() {
       }
     );
 
-    // 4. Subscribe to 12 SPM indicators real-time updates
+    // 5. Subscribe to 12 SPM indicators real-time updates
     const unsubSPM = subscribeSPM(
       (cloudSPM) => {
         if (cloudSPM && cloudSPM.length > 0) {
@@ -228,10 +292,31 @@ export default function App() {
       }
     );
 
+    // 6. Subscribe to Monthly Attendance real-time updates
+    const unsubAttendance = subscribeAttendance(
+      (cloudAttendanceList) => {
+        if (cloudAttendanceList && cloudAttendanceList.length > 0) {
+          setAttendanceMap((prev) => {
+            const next = { ...prev };
+            cloudAttendanceList.forEach((item) => {
+              next[item.id] = item;
+            });
+            localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(next));
+            return next;
+          });
+        }
+      },
+      (err) => {
+        console.warn('Firestore attendance listener error:', err);
+      }
+    );
+
     return () => {
+      cleanupNetwork();
       unsubEmployees();
       unsubTerritory();
       unsubSPM();
+      unsubAttendance();
     };
   }, []);
 
@@ -239,19 +324,47 @@ export default function App() {
   const handleManualCloudSync = async () => {
     try {
       setIsCloudSyncing(true);
-      await Promise.all([
+      await flushSyncQueue();
+      const attendanceList = Object.values(attendanceMap) as EmployeeMonthlyAttendance[];
+      const syncPromises: Promise<any>[] = [
         saveEmployeesBatch(employees),
         saveTerritoryToDb(profileTerritoryData),
         saveSPMBatch(spmIndicators)
-      ]);
+      ];
+      if (attendanceList.length > 0) {
+        syncPromises.push(saveAttendanceBatch(attendanceList));
+      }
+      await Promise.all(syncPromises);
       setSyncStatus('connected');
-      showToast('Seluruh data SIMPEG, 5 Desa & 12 SPM berhasil disinkronkan ke Cloud Database!', 'success');
+      setPendingSyncCount(getPendingSyncQueue().length);
+      showToast('Seluruh data SIMPEG, Daftar Hadir, 5 Desa & 12 SPM berhasil disinkronkan ke Cloud Database!', 'success');
     } catch (error) {
       console.error('Manual sync error:', error);
-      showToast('Gagal melakukan sinkronisasi cloud.', 'error');
+      showToast('Gagal melakukan sinkronisasi cloud. Periksa koneksi internet.', 'error');
     } finally {
       setIsCloudSyncing(false);
     }
+  };
+
+  // Apply fresh data pulled from Cloud
+  const handleApplyCloudData = (data: {
+    employees?: Employee[];
+    territory?: PuskesmasProfileData;
+    spm?: SPMIndicator[];
+  }) => {
+    if (data.employees && data.employees.length > 0) {
+      setEmployees(data.employees);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.employees));
+    }
+    if (data.territory && data.territory.villages && data.territory.villages.length > 0) {
+      setProfileTerritoryData(data.territory);
+      localStorage.setItem(TERRITORY_STORAGE_KEY, JSON.stringify(data.territory));
+    }
+    if (data.spm && data.spm.length > 0) {
+      setSpmIndicators(data.spm);
+      localStorage.setItem(SPM_STORAGE_KEY, JSON.stringify(data.spm));
+    }
+    showToast('Data terbaru dari Cloud Database berhasil diterapkan ke aplikasi!', 'success');
   };
 
   // Main Active View: 'employees' | 'profile' | 'vision-mission' | 'villages' | 'posyandu' | 'spm'
@@ -408,13 +521,17 @@ export default function App() {
     });
 
     setIsFormModalOpen(false);
-    showToast(`Data "${savedEmployee.fullName}" terkunci & tersimpan aman!`, 'success');
 
-    // 2. Persist to Cloud Database (Firestore)
+    // 2. Persist to Cloud Database (Firestore) or queue if offline
     try {
       await saveEmployeeToDb(savedEmployee);
+      setPendingSyncCount(getPendingSyncQueue().length);
+      showToast(`Data "${savedEmployee.fullName}" tersimpan & tersinkronisasi ke Cloud!`, 'success');
     } catch (err) {
-      console.warn('Failed to sync employee to Cloud Database:', err);
+      console.warn('Failed to sync employee to Cloud Database, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_EMPLOYEE', `Simpan Data: ${savedEmployee.fullName}`, savedEmployee);
+      setPendingSyncCount(getPendingSyncQueue().length);
+      showToast(`Data "${savedEmployee.fullName}" tersimpan offline & akan otomatis diunggah saat online.`, 'info');
     }
   };
 
@@ -442,11 +559,14 @@ export default function App() {
       setIsDeleteModalOpen(false);
       setEmployeeToDelete(null);
 
-      // Persist deletion to Cloud Database
+      // Persist deletion to Cloud Database or queue
       try {
         await deleteEmployeeFromDb(toDelete.id);
+        setPendingSyncCount(getPendingSyncQueue().length);
       } catch (err) {
-        console.warn('Failed to delete employee from Cloud Database:', err);
+        console.warn('Failed to delete employee from Cloud Database, enqueueing offline:', err);
+        enqueueSyncAction('DELETE_EMPLOYEE', `Hapus Pegawai: ${toDelete.fullName}`, toDelete.id);
+        setPendingSyncCount(getPendingSyncQueue().length);
       }
     }
   };
@@ -511,8 +631,11 @@ export default function App() {
     if (updatedTargetEmp) {
       try {
         await saveEmployeeToDb(updatedTargetEmp);
+        setPendingSyncCount(getPendingSyncQueue().length);
       } catch (err) {
-        console.warn('Failed to sync uploaded document to Cloud Database:', err);
+        console.warn('Failed to sync uploaded document to Cloud Database, enqueueing offline:', err);
+        enqueueSyncAction('SAVE_EMPLOYEE', `Unggah Berkas: ${updatedTargetEmp.fullName}`, updatedTargetEmp);
+        setPendingSyncCount(getPendingSyncQueue().length);
       }
     }
   };
@@ -553,8 +676,11 @@ export default function App() {
     if (updatedTargetEmp) {
       try {
         await saveEmployeeToDb(updatedTargetEmp);
+        setPendingSyncCount(getPendingSyncQueue().length);
       } catch (err) {
-        console.warn('Failed to sync deleted document in Cloud Database:', err);
+        console.warn('Failed to sync deleted document in Cloud Database, enqueueing offline:', err);
+        enqueueSyncAction('SAVE_EMPLOYEE', `Hapus Berkas: ${updatedTargetEmp.fullName}`, updatedTargetEmp);
+        setPendingSyncCount(getPendingSyncQueue().length);
       }
     }
   };
@@ -579,12 +705,15 @@ export default function App() {
       console.error('Storage lock write error:', e);
     }
     setIsEditProfileOpen(false);
-    showToast('Profil, Visi, Misi & Tata Nilai Puskesmas berhasil disimpan & terkunci!', 'success');
+    showToast('Profil, Visi, Misi & Tata Nilai Puskesmas berhasil disimpan!', 'success');
 
     try {
       await saveTerritoryToDb(updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
-      console.warn('Failed to sync territory to cloud:', err);
+      console.warn('Failed to sync territory to cloud, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_TERRITORY', 'Pembaruan Profil Puskesmas & Tata Nilai', updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -605,12 +734,15 @@ export default function App() {
       console.error('Storage lock write error:', e);
     }
     setIsEditVillageOpen(false);
-    showToast(`Data Desa ${updatedVillage.name} berhasil disimpan & terkunci!`, 'success');
+    showToast(`Data Desa ${updatedVillage.name} berhasil disimpan!`, 'success');
 
     try {
       await saveTerritoryToDb(updatedData);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
-      console.warn('Failed to sync village to cloud:', err);
+      console.warn('Failed to sync village to cloud, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_TERRITORY', `Pembaruan Desa ${updatedVillage.name}`, updatedData);
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -671,12 +803,15 @@ export default function App() {
       console.error('Storage lock write error:', e);
     }
     setIsEditPosyanduOpen(false);
-    showToast(`Data Posyandu "${posyanduData.name}" berhasil disimpan & terkunci!`, 'success');
+    showToast(`Data Posyandu "${posyanduData.name}" berhasil disimpan!`, 'success');
 
     try {
       await saveTerritoryToDb(updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
-      console.warn('Failed to sync posyandu to cloud:', err);
+      console.warn('Failed to sync posyandu to cloud, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_TERRITORY', `Pembaruan Posyandu ${posyanduData.name}`, updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -708,8 +843,11 @@ export default function App() {
 
     try {
       await saveTerritoryToDb(updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
-      console.warn('Failed to sync delete posyandu to cloud:', err);
+      console.warn('Failed to sync delete posyandu to cloud, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_TERRITORY', 'Hapus Data Posyandu', updatedProfile);
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -729,6 +867,7 @@ export default function App() {
 
     try {
       await saveTerritoryToDb(INITIAL_PROFILE_TERRITORY_DATA);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
       console.warn('Failed to reset territory in cloud:', err);
     }
@@ -759,12 +898,15 @@ export default function App() {
       }
       return updatedList;
     });
-    showToast(`Data SPM Indikator #${updated.number} (${updated.shortTitle}) berhasil disimpan & terkunci!`, 'success');
+    showToast(`Data SPM Indikator #${updated.number} (${updated.shortTitle}) berhasil disimpan!`, 'success');
 
     try {
       await saveSPMIndicatorToDb(updated);
+      setPendingSyncCount(getPendingSyncQueue().length);
     } catch (err) {
-      console.warn('Failed to sync SPM indicator to cloud:', err);
+      console.warn('Failed to sync SPM indicator to cloud, enqueueing offline:', err);
+      enqueueSyncAction('SAVE_SPM', `SPM #${updated.number}: ${updated.shortTitle}`, updated);
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -794,6 +936,70 @@ export default function App() {
       } catch (err) {
         console.warn('Failed to reset SPM in cloud:', err);
       }
+    }
+  };
+
+  // Attendance / Daftar Hadir Handlers
+  const handleSaveAttendance = async (record: EmployeeMonthlyAttendance) => {
+    if (!isAdmin) {
+      showToast('Akses dibatasi: Hanya Administrator yang berwenang menyimpan data presensi.', 'info');
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    const nextMap = { ...attendanceMap, [record.id]: record };
+    setAttendanceMap(nextMap);
+    try {
+      localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(nextMap));
+    } catch (e) {
+      console.error('Storage lock write error:', e);
+    }
+    showToast(`Data presensi "${record.employeeName}" (${record.monthName} ${record.year}) tersimpan!`, 'success');
+
+    try {
+      await saveAttendanceToDb(record);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    } catch (err) {
+      console.warn('Failed to sync attendance to cloud, enqueueing offline:', err);
+      enqueueSyncAction(
+        'SAVE_ATTENDANCE',
+        `Presensi: ${record.employeeName} (${record.monthName} ${record.year})`,
+        record
+      );
+      setPendingSyncCount(getPendingSyncQueue().length);
+    }
+  };
+
+  const handleBatchSaveAttendance = async (records: EmployeeMonthlyAttendance[]) => {
+    if (!isAdmin) {
+      showToast('Akses dibatasi: Hanya Administrator yang berwenang menyimpan data presensi.', 'info');
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    const nextMap = { ...attendanceMap };
+    records.forEach((r) => {
+      nextMap[r.id] = r;
+    });
+    setAttendanceMap(nextMap);
+    try {
+      localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(nextMap));
+    } catch (e) {
+      console.error('Storage lock write error:', e);
+    }
+    showToast(`Presensi ${records.length} Pegawai (${records[0]?.monthName || ''} ${records[0]?.year || ''}) berhasil diperbarui!`, 'success');
+
+    try {
+      await saveAttendanceBatch(records);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    } catch (err) {
+      console.warn('Failed to sync attendance batch to cloud, enqueueing offline:', err);
+      enqueueSyncAction(
+        'BATCH_ATTENDANCE',
+        `Presensi Massal: ${records.length} Pegawai (${records[0]?.monthName || ''} ${records[0]?.year || ''})`,
+        records
+      );
+      setPendingSyncCount(getPendingSyncQueue().length);
     }
   };
 
@@ -1315,7 +1521,11 @@ export default function App() {
           onLogout={handleLogout}
           syncStatus={syncStatus}
           isCloudSyncing={isCloudSyncing}
+          isOnline={isOnline}
+          pendingSyncCount={pendingSyncCount}
           onManualCloudSync={handleManualCloudSync}
+          onOpenSyncManager={() => setIsSyncModalOpen(true)}
+          onPullCloudData={() => setIsSyncModalOpen(true)}
           onViewChange={setCurrentMainView}
           onAddNew={handleAddNew}
           onPrintRekap={() => setIsPrintRekapOpen(true)}
@@ -1328,6 +1538,50 @@ export default function App() {
           onResetData={handleResetData}
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
+
+        {/* Offline & Sync Status Banner */}
+        {!isOnline && (
+          <div id="offline-mode-banner" className="bg-amber-500 text-slate-950 px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold shadow-xs border-b border-amber-600 print:hidden animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <CloudOff className="w-4 h-4 text-slate-950 shrink-0" />
+              <span>
+                <strong>Mode Offline Aktif:</strong> Anda sedang bekerja tanpa koneksi internet. Admin dapat menginput seluruh data dengan aman; perubahan ({pendingSyncCount} antrean) tersimpan lokal dan akan otomatis diunggah saat online.
+              </span>
+            </div>
+            <button
+              onClick={() => setIsSyncModalOpen(true)}
+              className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[11px] font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+            >
+              Pusat Sinkronisasi &rarr;
+            </button>
+          </div>
+        )}
+
+        {isOnline && pendingSyncCount > 0 && (
+          <div id="pending-sync-banner" className="bg-blue-600 text-white px-4 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-medium shadow-xs print:hidden animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <Cloud className="w-4 h-4 text-blue-200 shrink-0 animate-pulse" />
+              <span>
+                Koneksi Internet Aktif: Terdapat <strong>{pendingSyncCount} data tersimpan offline</strong> yang siap disinkronkan ke Cloud Firestore.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleManualCloudSync}
+                disabled={isCloudSyncing}
+                className="px-3 py-1 bg-white text-blue-900 rounded-lg text-[11px] font-black hover:bg-blue-50 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {isCloudSyncing ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}
+              </button>
+              <button
+                onClick={() => setIsSyncModalOpen(true)}
+                className="px-2.5 py-1 bg-blue-800 text-white rounded-lg text-[11px] hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Kelola
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Dashboard & Content Area */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 print:p-0">
@@ -1361,6 +1615,21 @@ export default function App() {
                 onDeleteEmployee={handleDeleteRequest}
                 onUploadDocument={handleOpenUploadDocument}
                 onAddNew={handleAddNew}
+              />
+            </div>
+          ) : currentMainView === 'attendance' ? (
+            <div className="animate-in fade-in duration-150">
+              <AttendanceView
+                employees={employees}
+                puskesmasInfo={puskesmasInfo}
+                isAdmin={isAdmin}
+                attendanceMap={attendanceMap}
+                onSaveAttendance={handleSaveAttendance}
+                onBatchSaveAttendance={handleBatchSaveAttendance}
+                onRequireAdmin={() => {
+                  showToast('Akses dibatasi: Silakan login sebagai Administrator untuk mengisi atau mengubah daftar hadir.', 'info');
+                  setIsLoginModalOpen(true);
+                }}
               />
             </div>
           ) : currentMainView === 'profile' ? (
@@ -1398,12 +1667,21 @@ export default function App() {
                 puskesmasInfo={puskesmasInfo}
                 isAdmin={isAdmin}
                 onOpenEditVillage={(village) => {
+                  if (!isAdmin) {
+                    showToast('Akses dibatasi: Hanya Administrator yang dapat mengubah data desa.', 'info');
+                    setIsLoginModalOpen(true);
+                    return;
+                  }
                   setVillageToEdit(village);
                   setIsEditVillageOpen(true);
                 }}
                 onOpenPrintModal={() => setIsPrintProfileTerritoryOpen(true)}
                 onNavigateToPosyandu={() => setCurrentMainView('posyandu')}
                 onResetDefaultData={handleResetProfileTerritoryData}
+                onRequireAdmin={() => {
+                  showToast('Akses dibatasi: Hanya Administrator yang dapat mengubah data wilayah desa.', 'info');
+                  setIsLoginModalOpen(true);
+                }}
               />
             </div>
           ) : currentMainView === 'posyandu' ? (
@@ -1460,6 +1738,7 @@ export default function App() {
         onClose={() => setIsFormModalOpen(false)}
         onSave={handleSaveEmployee}
         employeeToEdit={employeeToEdit}
+        isAdmin={isAdmin}
       />
 
       {/* 2. Employee Profile Print Modal (Official A4 Kop Surat) */}
@@ -1496,6 +1775,7 @@ export default function App() {
       <UploadDocumentModal
         isOpen={isUploadDocModalOpen}
         employee={employeeForDocUpload}
+        isAdmin={isAdmin}
         onClose={() => {
           setIsUploadDocModalOpen(false);
           setEmployeeForDocUpload(null);
@@ -1558,6 +1838,7 @@ export default function App() {
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
         profileData={profileTerritoryData}
+        isAdmin={isAdmin}
         onSave={handleSaveProfile}
       />
 
@@ -1566,6 +1847,7 @@ export default function App() {
         isOpen={isEditVillageOpen}
         onClose={() => setIsEditVillageOpen(false)}
         village={villageToEdit}
+        isAdmin={isAdmin}
         onSave={handleSaveVillage}
       />
 
@@ -1595,6 +1877,7 @@ export default function App() {
         onClose={() => setIsEditSPMOpen(false)}
         indicator={indicatorToEdit}
         employees={employees}
+        isAdmin={isAdmin}
         onSave={handleSaveSPMIndicator}
       />
 
@@ -1613,6 +1896,22 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
+      />
+
+      {/* 16. Offline & Cloud Synchronization Manager Modal */}
+      <SyncManagerModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        isOnline={isOnline}
+        isAdmin={isAdmin}
+        totalEmployees={employees.length}
+        totalVillages={profileTerritoryData.villages.length}
+        totalSPM={spmIndicators.length}
+        onSyncComplete={(msg, type) => {
+          showToast(msg, type);
+          setPendingSyncCount(getPendingSyncQueue().length);
+        }}
+        onApplyCloudData={handleApplyCloudData}
       />
     </div>
   );

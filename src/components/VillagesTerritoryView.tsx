@@ -27,6 +27,7 @@ interface VillagesTerritoryViewProps {
   onOpenPrintModal: () => void;
   onNavigateToPosyandu?: () => void;
   onResetDefaultData: () => void;
+  onRequireAdmin?: () => void;
 }
 
 export const VillagesTerritoryView: React.FC<VillagesTerritoryViewProps> = ({
@@ -36,7 +37,8 @@ export const VillagesTerritoryView: React.FC<VillagesTerritoryViewProps> = ({
   onOpenEditVillage,
   onOpenPrintModal,
   onNavigateToPosyandu,
-  onResetDefaultData
+  onResetDefaultData,
+  onRequireAdmin
 }) => {
   // Aggregations
   const totalArea = profileData.villages.reduce((acc, v) => acc + v.areaKm2, 0);
@@ -261,7 +263,13 @@ export const VillagesTerritoryView: React.FC<VillagesTerritoryViewProps> = ({
                     </td>
                     <td className="py-3 px-3.5 text-center">
                       <button
-                        onClick={() => onOpenEditVillage(v)}
+                        onClick={() => {
+                          if (!isAdmin) {
+                            if (onRequireAdmin) onRequireAdmin();
+                            return;
+                          }
+                          onOpenEditVillage(v);
+                        }}
                         className={`p-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                           isAdmin 
                             ? 'text-teal-700 hover:text-teal-900 hover:bg-teal-50' 
@@ -340,11 +348,22 @@ export const VillagesTerritoryView: React.FC<VillagesTerritoryViewProps> = ({
                 Jarak: {v.distanceToPuskesmasKm} km ({v.travelTimeMinutes} mnt)
               </span>
               <button
-                onClick={() => onOpenEditVillage(v)}
-                className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900 cursor-pointer"
+                onClick={() => {
+                  if (!isAdmin) {
+                    if (onRequireAdmin) onRequireAdmin();
+                    return;
+                  }
+                  onOpenEditVillage(v);
+                }}
+                className={`inline-flex items-center gap-1 text-xs font-bold transition-colors cursor-pointer ${
+                  isAdmin 
+                    ? 'text-teal-700 hover:text-teal-900' 
+                    : 'text-amber-700 hover:text-amber-800 bg-amber-50 px-2 py-1 rounded-md border border-amber-200'
+                }`}
+                title={isAdmin ? `Edit Data Desa ${v.name}` : `Hanya Admin yang dapat mengedit data desa (Klik untuk Login)`}
               >
-                <Edit className="w-3.5 h-3.5" />
-                <span>Edit Data Desa</span>
+                {isAdmin ? <Edit className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-amber-600" />}
+                <span>{isAdmin ? 'Edit Data Desa' : 'Edit (Khusus Admin)'}</span>
               </button>
             </div>
           </div>

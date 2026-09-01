@@ -254,6 +254,71 @@ export const EmployeeDetailDrawer: React.FC<EmployeeDetailDrawerProps> = ({
             </div>
           </div>
 
+          {/* Section: Penugasan Nakes Desa (Jika Ada) */}
+          {(employee.isVillageHealthWorker || employee.assignedVillage) && (
+            <div className="space-y-2 p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-200">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-emerald-950 text-xs flex items-center gap-1.5 uppercase tracking-wide">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <span>Penugasan Tenaga Kesehatan Desa (Nakes Desa)</span>
+                </h4>
+                <span className="px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded-full text-[10px] font-bold">
+                  {employee.villageFacilityType || 'Pustu'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div className="p-2 bg-white rounded-lg border border-emerald-200/80">
+                  <span className="text-[10px] text-slate-400 block">Desa Binaan</span>
+                  <span className="font-bold text-emerald-900">{employee.assignedVillage || '-'}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-emerald-200/80">
+                  <span className="text-[10px] text-slate-400 block">Peran / Tugas</span>
+                  <span className="font-semibold text-slate-800">{employee.villageRole || 'Bidan / Perawat Desa'}</span>
+                </div>
+
+                {employee.villageAssignmentSK && (
+                  <div className="col-span-2 p-2 bg-white rounded-lg border border-emerald-200/80">
+                    <span className="text-[10px] text-slate-400 block">No. Surat Tugas / SK Penugasan Desa</span>
+                    <span className="font-mono font-semibold text-slate-800">{employee.villageAssignmentSK}</span>
+                    {employee.villageAssignmentTMT && (
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        TMT: {formatDateIndonesian(employee.villageAssignmentTMT)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {employee.assignedPosyandus && employee.assignedPosyandus.length > 0 && (
+                  <div className="col-span-2 p-2 bg-white rounded-lg border border-emerald-200/80">
+                    <span className="text-[10px] text-slate-400 block mb-1">Posyandu Binaan yang Diampu:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {employee.assignedPosyandus.map(pos => (
+                        <span key={pos} className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-semibold">
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {employee.villageServiceSchedule && (
+                  <div className="col-span-2 p-2 bg-white rounded-lg border border-emerald-200/80">
+                    <span className="text-[10px] text-slate-400 block">Jadwal Pelayanan Rutin:</span>
+                    <span className="font-medium text-slate-700 text-[11px]">{employee.villageServiceSchedule}</span>
+                  </div>
+                )}
+
+                {employee.villageNotes && (
+                  <div className="col-span-2 p-2 bg-white rounded-lg border border-emerald-200/80">
+                    <span className="text-[10px] text-slate-400 block">Catatan Program Lapangan:</span>
+                    <span className="italic text-slate-600 text-[11px]">{employee.villageNotes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Section: Riwayat Pendidikan */}
           <div className="space-y-2">
             <h4 className="font-bold text-slate-900 border-b border-slate-200 pb-1 text-xs uppercase tracking-wide">

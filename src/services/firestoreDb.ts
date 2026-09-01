@@ -15,6 +15,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 import { Employee } from '../types/employee';
 import { PuskesmasProfileData } from '../types/profileTerritory';
 import { SPMIndicator } from '../types/spm';
+import { EmployeeMonthlyAttendance } from '../types/attendance';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
@@ -29,6 +30,7 @@ const EMPLOYEES_COLLECTION = 'employees';
 const TERRITORY_COLLECTION = 'territory';
 const TERRITORY_DOC_ID = 'main_profile_territory';
 const SPM_COLLECTION = 'spm';
+const ATTENDANCE_COLLECTION = 'attendance';
 
 export type SyncStatus = 'connected' | 'syncing' | 'offline' | 'error';
 
@@ -282,6 +284,74 @@ export async function saveSPMBatch(indicators: SPMIndicator[]): Promise<void> {
     await batch.commit();
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, SPM_COLLECTION);
+    throw err;
+  }
+}
+
+/**
+ * Real-time listener for Monthly Attendance records
+ */
+export function subscribeAttendance(
+  onSuccess: (attendanceList: EmployeeMonthlyAttendance[]) => void,
+  onError?: (err: Error) => void
+) {
+  const colRef = collection(db, ATTENDANCE_COLLECTION);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (!snapshot.empty) {
+        const list: EmployeeMonthlyAttendance[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as EmployeeMonthlyAttendance;
+          if (data && data.id && data.employeeName) {
+            list.push(data);
+          }
+        });
+        if (list.length > 0) {
+          onSuccess(list);
+        }
+      }
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.GET, ATTENDANCE_COLLECTION);
+      if (onError) onError(err);
+    }
+  );
+}
+
+/**
+ * Save / Update a single monthly attendance record
+ */
+export async function saveAttendanceToDb(record: EmployeeMonthlyAttendance): Promise<void> {
+  const docPath = `${ATTENDANCE_COLLECTION}/${record.id}`;
+  try {
+    const docRef = doc(db, ATTENDANCE_COLLECTION, record.id);
+    await setDoc(docRef, {
+      ...record,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, docPath);
+    throw err;
+  }
+}
+
+/**
+ * Batch save attendance records
+ */
+export async function saveAttendanceBatch(records: EmployeeMonthlyAttendance[]): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    records.forEach((rec) => {
+      const docRef = doc(db, ATTENDANCE_COLLECTION, rec.id);
+      batch.set(docRef, {
+        ...rec,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    });
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, ATTENDANCE_COLLECTION);
     throw err;
   }
 }

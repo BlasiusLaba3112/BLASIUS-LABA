@@ -507,7 +507,7 @@ export const SPMView: React.FC<SPMViewProps> = ({
               <span>Matriks Lengkap Capaian 12 SPM Berdasarkan 5 Desa Binaan</span>
             </h3>
             <span className="text-xs text-slate-500">
-              Desa Kringa, Timutawa, Hikong, Udekduen, Ojang
+              Desa Kringa, Timutawa, Hikong, Udek Duen, Ojang
             </span>
           </div>
 
@@ -520,7 +520,7 @@ export const SPMView: React.FC<SPMViewProps> = ({
                   <th className="p-3 text-center min-w-[100px]">Desa Kringa</th>
                   <th className="p-3 text-center min-w-[100px]">Desa Timutawa</th>
                   <th className="p-3 text-center min-w-[100px]">Desa Hikong</th>
-                  <th className="p-3 text-center min-w-[100px]">Desa Udekduen</th>
+                  <th className="p-3 text-center min-w-[100px]">Desa Udek Duen</th>
                   <th className="p-3 text-center min-w-[100px]">Desa Ojang</th>
                   <th className="p-3 text-center bg-blue-50 text-blue-900 min-w-[120px]">Total Puskesmas</th>
                   <th className="p-3 text-center min-w-[80px]">Aksi</th>

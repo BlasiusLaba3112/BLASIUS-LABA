@@ -14,7 +14,12 @@ import {
   Sparkles,
   Plus,
   Eye,
-  FileCheck
+  FileCheck,
+  MapPin,
+  Home,
+  Users,
+  Building2,
+  HeartHandshake
 } from 'lucide-react';
 import { 
   Employee, 
@@ -32,7 +37,11 @@ import {
   WORK_UNITS, 
   EMPLOYMENT_STATUSES, 
   RANK_GRADES, 
-  JOB_TITLES_SUGGESTIONS 
+  JOB_TITLES_SUGGESTIONS,
+  BOGANATAR_VILLAGES,
+  VILLAGE_FACILITIES,
+  VILLAGE_ROLES,
+  VILLAGE_POSYANDU_MAP
 } from '../data/initialData';
 import { DocumentViewerModal } from './DocumentViewerModal';
 
@@ -41,16 +50,18 @@ interface EmployeeFormModalProps {
   onClose: () => void;
   onSave: (employeeData: Employee) => void;
   employeeToEdit?: Employee | null;
+  isAdmin?: boolean;
 }
 
 export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  employeeToEdit
+  employeeToEdit,
+  isAdmin = true
 }) => {
   const isEdit = Boolean(employeeToEdit);
-  const [activeTab, setActiveTab] = useState<'personal' | 'employment' | 'education' | 'documents'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'employment' | 'village' | 'education' | 'documents'>('personal');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewingDocument, setViewingDocument] = useState<DigitalDocument | null>(null);
 
@@ -94,6 +105,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
     strIsLifetime: true,
     sipNumber: '',
     sipExpiryDate: '',
+    isVillageHealthWorker: false,
+    assignedVillage: 'Desa Kringa',
+    villageFacilityType: 'Pustu',
+    villageRole: 'Bidan Desa (Bides)',
+    assignedPosyandus: [],
+    villageAssignmentSK: '',
+    villageAssignmentTMT: '',
+    villageServiceSchedule: 'Senin - Sabtu (08.00 - 14.00 WITA)',
+    villageNotes: '',
     documents: [],
     notes: ''
   });
@@ -101,7 +121,18 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   // Load employee data on edit
   useEffect(() => {
     if (employeeToEdit) {
-      setFormData({ ...employeeToEdit });
+      setFormData({ 
+        isVillageHealthWorker: Boolean(employeeToEdit.isVillageHealthWorker),
+        assignedVillage: employeeToEdit.assignedVillage || 'Desa Kringa',
+        villageFacilityType: employeeToEdit.villageFacilityType || 'Pustu',
+        villageRole: employeeToEdit.villageRole || (employeeToEdit.jobTitle?.includes('Bidan') ? 'Bidan Desa (Bides)' : 'Perawat Desa (Perawat Pustu/Poskesdes)'),
+        assignedPosyandus: employeeToEdit.assignedPosyandus || [],
+        villageAssignmentSK: employeeToEdit.villageAssignmentSK || '',
+        villageAssignmentTMT: employeeToEdit.villageAssignmentTMT || '',
+        villageServiceSchedule: employeeToEdit.villageServiceSchedule || 'Senin - Sabtu (08.00 - 14.00 WITA)',
+        villageNotes: employeeToEdit.villageNotes || '',
+        ...employeeToEdit 
+      });
     } else {
       setFormData({
         id: `peg-${Date.now()}`,
@@ -114,8 +145,8 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         gender: 'P',
         religion: 'Katolik',
         maritalStatus: 'Menikah',
-        address: 'Desa Boganatar RT 02 / RW 01',
-        village: 'Desa Boganatar, Kec. Talibura',
+        address: 'Desa Kringa RT 02 / RW 01',
+        village: 'Desa Kringa, Kec. Talibura',
         phone: '081234567890',
         email: '',
         photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=80',
@@ -137,6 +168,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         strIsLifetime: true,
         sipNumber: '',
         sipExpiryDate: '',
+        isVillageHealthWorker: false,
+        assignedVillage: 'Desa Kringa',
+        villageFacilityType: 'Pustu',
+        villageRole: 'Bidan Desa (Bides)',
+        assignedPosyandus: [],
+        villageAssignmentSK: '',
+        villageAssignmentTMT: '',
+        villageServiceSchedule: 'Senin - Sabtu (08.00 - 14.00 WITA)',
+        villageNotes: '',
         documents: [],
         notes: ''
       });
@@ -306,6 +346,10 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Akses Ditolak: Hanya Administrator resmi (@shyllpb) yang berwenang menyimpan perubahan atau menginput data pegawai.');
+      return;
+    }
     if (!validateForm()) return;
 
     const finalEmployee: Employee = {
@@ -342,6 +386,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       strIsLifetime: Boolean(formData.strIsLifetime),
       sipNumber: formData.sipNumber || '',
       sipExpiryDate: formData.sipExpiryDate || '',
+      isVillageHealthWorker: Boolean(formData.isVillageHealthWorker),
+      assignedVillage: formData.assignedVillage || '',
+      villageFacilityType: formData.villageFacilityType || 'Pustu',
+      villageRole: formData.villageRole || '',
+      assignedPosyandus: formData.assignedPosyandus || [],
+      villageAssignmentSK: formData.villageAssignmentSK || '',
+      villageAssignmentTMT: formData.villageAssignmentTMT || '',
+      villageServiceSchedule: formData.villageServiceSchedule || '',
+      villageNotes: formData.villageNotes || '',
       documents: formData.documents || [],
       notes: formData.notes || '',
       createdAt: formData.createdAt || new Date().toISOString(),
@@ -381,7 +434,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('personal')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'personal'
                 ? 'bg-white text-blue-600 border-blue-600 shadow-2xs'
                 : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
@@ -394,7 +447,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('employment')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'employment'
                 ? 'bg-white text-blue-600 border-blue-600 shadow-2xs'
                 : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
@@ -406,33 +459,64 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
           <button
             type="button"
+            id="tab-btn-nakes-desa"
+            onClick={() => setActiveTab('village')}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'village'
+                ? 'bg-white text-emerald-700 border-emerald-600 shadow-2xs font-bold'
+                : formData.isVillageHealthWorker
+                  ? 'text-emerald-700 bg-emerald-50/70 border-emerald-300 hover:bg-emerald-100/70'
+                  : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+            <span>3. Nakes Desa & Wilayah</span>
+            {formData.isVillageHealthWorker && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('education')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'education'
                 ? 'bg-white text-blue-600 border-blue-600 shadow-2xs'
                 : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span>3. Pendidikan, STR & SIP</span>
+            <span>4. Pendidikan, STR & SIP</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('documents')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg border-t-2 transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'documents'
                 ? 'bg-white text-blue-600 border-blue-600 shadow-2xs'
                 : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>4. Berkas Digital ({formData.documents?.length || 0})</span>
+            <span>5. Berkas Digital ({formData.documents?.length || 0})</span>
           </button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+          {!isAdmin && (
+            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 flex items-start gap-2.5">
+              <Lock className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold text-xs">Mode Pratinjau (Terkunci)</p>
+                <p className="text-[11px] text-amber-800">
+                  Anda membuka formulir dalam mode hanya lihat. Hanya akun <strong>ADMINISTRATOR (@shyllpb)</strong> yang dapat menyimpan data kepegawaian.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: DATA PRIBADI */}
           {activeTab === 'personal' && (
             <div className="space-y-4 animate-in fade-in duration-100">
@@ -823,19 +907,345 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                   </label>
                   <select
                     value={formData.department || 'Poli Umum'}
-                    onChange={(e) => handleChange('department', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleChange('department', val);
+                      if (val === 'Pustu & Poskesdes Jaringan' && !formData.isVillageHealthWorker) {
+                        handleChange('isVillageHealthWorker', true);
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                   >
                     {WORK_UNITS.map(u => (
                       <option key={u} value={u}>{u}</option>
                     ))}
                   </select>
+
+                  {(formData.department === 'Pustu & Poskesdes Jaringan' || formData.isVillageHealthWorker || formData.jobTitle?.toLowerCase().includes('desa')) && (
+                    <div className="mt-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-emerald-800">
+                        <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs">
+                          Pegawai ini bertugas di jaringan desa binaan. Buka tab <strong>3. Nakes Desa & Wilayah</strong> untuk melengkapi data desa, fasilitas & posyandu binaan.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('village')}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shrink-0 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        Buka Nakes Desa &rarr;
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: PENDIDIKAN & STR / SIP */}
+          {/* TAB 3: NAKES DESA & PENUGASAN WILAYAH BINAAN */}
+          {activeTab === 'village' && (
+            <div className="space-y-5 animate-in fade-in duration-100">
+              {/* Activation Switch Card */}
+              <div className={`p-4 rounded-xl border transition-all ${
+                formData.isVillageHealthWorker
+                  ? 'bg-emerald-50/90 border-emerald-300'
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      formData.isVillageHealthWorker 
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs' 
+                        : 'bg-slate-200 text-slate-500 border-slate-300'
+                    }`}>
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                          Menu Penugasan Nakes Desa / Bidan Desa / Perawat Wilayah Binaan
+                        </h3>
+                        {formData.isVillageHealthWorker ? (
+                          <span className="px-2 py-0.5 bg-emerald-200 text-emerald-900 text-[10px] font-bold rounded-full">
+                            Aktif Nakes Desa
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-medium rounded-full">
+                            Non-Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        Aktifkan opsi ini bagi tenaga kesehatan (Bidan, Perawat, Nakes Gizi/Kesling) yang bertugas di Pustu, Poskesdes, Polindes, atau sebagai Pembina Wilayah di 5 Desa Binaan UPT Puskesmas Boganatar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer self-start sm:self-center px-3 py-2 bg-white rounded-lg border border-slate-300 shadow-2xs hover:bg-slate-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      id="checkbox-is-village-nakes"
+                      checked={Boolean(formData.isVillageHealthWorker)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        handleChange('isVillageHealthWorker', checked);
+                        if (checked) {
+                          if (!formData.assignedVillage) handleChange('assignedVillage', 'Desa Kringa');
+                          if (!formData.villageFacilityType) handleChange('villageFacilityType', 'Pustu');
+                          if (!formData.villageRole) handleChange('villageRole', 'Bidan Desa (Bides)');
+                          if (!formData.assignedPosyandus || formData.assignedPosyandus.length === 0) {
+                            const defaultPos = VILLAGE_POSYANDU_MAP['Desa Kringa'] || [];
+                            if (defaultPos.length > 0) handleChange('assignedPosyandus', [defaultPos[0]]);
+                          }
+                        }
+                      }}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span className="font-bold text-xs text-slate-800">
+                      {formData.isVillageHealthWorker ? 'Ditugaskan di Desa' : 'Bukan Nakes Desa'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {formData.isVillageHealthWorker ? (
+                <div className="space-y-4">
+                  {/* Form Fields Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    {/* Desa Binaan Penugasan */}
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Pilih Desa Binaan Penugasan <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="select-assigned-village"
+                        value={formData.assignedVillage || 'Desa Kringa'}
+                        onChange={(e) => {
+                          const village = e.target.value;
+                          handleChange('assignedVillage', village);
+                          if (VILLAGE_POSYANDU_MAP[village] && VILLAGE_POSYANDU_MAP[village].length > 0) {
+                            handleChange('assignedPosyandus', [VILLAGE_POSYANDU_MAP[village][0]]);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800 text-xs"
+                      >
+                        {BOGANATAR_VILLAGES.map(desa => (
+                          <option key={desa} value={desa}>{desa}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Pilihan 5 Desa Binaan: Desa Kringa, Desa Timutawa, Desa Hikong, Desa Udek Duen, dan Desa Ojang.
+                      </p>
+                    </div>
+
+                    {/* Fasilitas Penempatan */}
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Fasilitas / Pos Pelayanan di Desa <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="select-village-facility"
+                        value={formData.villageFacilityType || 'Pustu'}
+                        onChange={(e) => handleChange('villageFacilityType', e.target.value as any)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs font-semibold"
+                      >
+                        {VILLAGE_FACILITIES.map(fac => (
+                          <option key={fac} value={fac}>{fac}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Pustu (Puskesmas Pembantu), Poskesdes, Polindes, atau Posyandu Wilayah.
+                      </p>
+                    </div>
+
+                    {/* Peran / Tugas Penugasan Desa */}
+                    <div className="md:col-span-2">
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Peran / Tugas Khusus di Desa <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <select
+                          value={VILLAGE_ROLES.includes(formData.villageRole || '') ? formData.villageRole : 'Custom'}
+                          onChange={(e) => {
+                            if (e.target.value !== 'Custom') {
+                              handleChange('villageRole', e.target.value);
+                            }
+                          }}
+                          className="sm:w-1/2 px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs font-medium"
+                        >
+                          {VILLAGE_ROLES.map(role => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                          <option value="Custom">-- Input Peran Khusus Lainnya --</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          placeholder="Ketik peran spesifik jika ada (misal: Bidan Desa Pustu Hikong)"
+                          value={formData.villageRole || ''}
+                          onChange={(e) => handleChange('villageRole', e.target.value)}
+                          className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Posyandu Binaan yang Diampu */}
+                    <div className="md:col-span-2 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-emerald-600" />
+                          <span>Posyandu Binaan yang Diampu di {formData.assignedVillage || 'Desa'}:</span>
+                        </label>
+                        <span className="text-[10px] text-slate-500">Centang posyandu yang menjadi binaan langsung nakes</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                        {(VILLAGE_POSYANDU_MAP[formData.assignedVillage || 'Desa Kringa'] || [
+                          'Posyandu Mawar I',
+                          'Posyandu Melati II',
+                          'Posyandu Lansia Sejahtera'
+                        ]).map(posName => {
+                          const isChecked = (formData.assignedPosyandus || []).includes(posName);
+                          return (
+                            <label 
+                              key={posName}
+                              className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all ${
+                                isChecked 
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold shadow-2xs' 
+                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const current = formData.assignedPosyandus || [];
+                                  if (e.target.checked) {
+                                    handleChange('assignedPosyandus', [...current, posName]);
+                                  } else {
+                                    handleChange('assignedPosyandus', current.filter(p => p !== posName));
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                              />
+                              <span className="truncate">{posName}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Posyandu tag input */}
+                      <div className="pt-2 border-t border-slate-200 flex items-center gap-2">
+                        <span className="text-[10px] text-slate-500 font-medium">Posyandu terpilih:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(formData.assignedPosyandus && formData.assignedPosyandus.length > 0) ? (
+                            formData.assignedPosyandus.map(p => (
+                              <span key={p} className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-semibold flex items-center gap-1">
+                                {p}
+                                <button
+                                  type="button"
+                                  onClick={() => handleChange('assignedPosyandus', (formData.assignedPosyandus || []).filter(x => x !== p))}
+                                  className="hover:text-red-700 cursor-pointer"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-amber-700 italic">Belum ada posyandu binaan yang dicentang</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nomor SK Penugasan Desa & TMT */}
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Nomor Surat Tugas / SK Penugasan Wilayah Desa
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: 800/PKM-BOG/SK-BIDES/04/2024"
+                        value={formData.villageAssignmentSK || ''}
+                        onChange={(e) => handleChange('villageAssignmentSK', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800 text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        TMT Mulai Penugasan di Desa (Tanggal)
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.villageAssignmentTMT || ''}
+                        onChange={(e) => handleChange('villageAssignmentTMT', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs"
+                      />
+                    </div>
+
+                    {/* Jadwal Pelayanan di Desa */}
+                    <div className="md:col-span-2">
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Jadwal Rutin Pelayanan di Pos Desa / Posyandu
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Buka Pustu Senin - Sabtu (08.00 - 14.00 WITA) & Jadwal Posyandu Tgl 10-15 setiap bulan"
+                        value={formData.villageServiceSchedule || ''}
+                        onChange={(e) => handleChange('villageServiceSchedule', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs"
+                      />
+                    </div>
+
+                    {/* Catatan Khusus Penugasan */}
+                    <div className="md:col-span-2">
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        Catatan Tugas Pokok Lapangan & Program Kesehatan Desa
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Contoh: Mengampu penanganan balita stunting di Dusun Kringa Barat, pendampingan ibu hamil risti, dan kunjungan rumah lansia (ILP)."
+                        value={formData.villageNotes || ''}
+                        onChange={(e) => handleChange('villageNotes', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mx-auto">
+                    <MapPin className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">Pegawai Bertugas di Puskesmas Induk</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                      Jika pegawai ini ditempatkan sebagai Bidan Desa, Perawat Pustu/Poskesdes, atau Pembina Wilayah di salah satu dari 5 desa binaan, aktifkan tombol di bawah untuk mengisi data penugasan desa.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange('isVillageHealthWorker', true);
+                      if (!formData.assignedVillage) handleChange('assignedVillage', 'Desa Kringa');
+                      if (!formData.villageFacilityType) handleChange('villageFacilityType', 'Pustu');
+                      if (!formData.villageRole) handleChange('villageRole', 'Bidan Desa (Bides)');
+                      const defaultPos = VILLAGE_POSYANDU_MAP['Desa Kringa'] || [];
+                      if (defaultPos.length > 0) handleChange('assignedPosyandus', [defaultPos[0]]);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tugaskan Sebagai Nakes Desa</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: PENDIDIKAN & STR / SIP */}
           {activeTab === 'education' && (
             <div className="space-y-5 animate-in fade-in duration-100">
               {/* Pendidikan Formal */}
@@ -1218,10 +1628,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
               <button
                 type="submit"
                 id="btn-save-employee"
-                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-2xs transition-all transform active:scale-95 cursor-pointer"
+                className={`inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-lg shadow-2xs transition-all transform active:scale-95 cursor-pointer ${
+                  isAdmin 
+                    ? 'text-white bg-blue-600 hover:bg-blue-700' 
+                    : 'text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400'
+                }`}
               >
-                <Save className="w-4 h-4" />
-                <span>Simpan Data Pegawai</span>
+                {isAdmin ? <Save className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-800" />}
+                <span>{isAdmin ? 'Simpan Data Pegawai' : 'Terkunci (Hanya Admin)'}</span>
               </button>
             </div>
           </div>

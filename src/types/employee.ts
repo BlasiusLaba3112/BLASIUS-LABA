@@ -78,7 +78,18 @@ export interface Employee {
   sipNumber: string; // No. SIP (Surat Izin Praktik dari DPMPTSP / Dinkes Sikka)
   sipExpiryDate: string; // YYYY-MM-DD
 
-  // 4. Berkas Digital
+  // 4. Penugasan Nakes Desa & Wilayah Binaan
+  isVillageHealthWorker?: boolean; // Status Nakes Desa
+  assignedVillage?: string; // Desa Binaan (Desa Kringa, Desa Timutawa, Desa Hikong, Desa Udek Duen, Desa Ojang)
+  villageFacilityType?: 'Pustu' | 'Poskesdes' | 'Polindes' | 'Posyandu' | 'Puskesmas Induk'; // Fasilitas Penempatan
+  villageRole?: string; // Peran: Bidan Desa, Perawat Desa, Pembina Wilayah, PJ Posyandu ILP
+  assignedPosyandus?: string[]; // Daftar Posyandu binaan yang diampu
+  villageAssignmentSK?: string; // Nomor Surat Tugas / SK Penugasan Desa
+  villageAssignmentTMT?: string; // TMT Penugasan Desa (YYYY-MM-DD)
+  villageServiceSchedule?: string; // Jadwal Pelayanan di Desa
+  villageNotes?: string; // Catatan Khusus Penugasan Desa
+
+  // 5. Berkas Digital
   documents: DigitalDocument[];
   notes?: string;
   

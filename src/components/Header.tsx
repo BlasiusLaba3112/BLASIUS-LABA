@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   UserPlus, 
@@ -16,6 +16,7 @@ import {
   Users,
   Target,
   Cloud,
+  CloudOff,
   RefreshCw,
   LogIn,
   LogOut,
@@ -25,13 +26,17 @@ import {
   ShieldCheck,
   KeyRound,
   Sparkles,
-  HeartHandshake
+  HeartHandshake,
+  Clock as ClockIcon,
+  Shield,
+  ArrowDownToLine,
+  CalendarCheck
 } from 'lucide-react';
 import { PuskesmasInfo } from '../types/employee';
 import { SyncStatus } from '../services/firestoreDb';
 import { AuthUser } from '../types/auth';
 
-export type MainViewType = 'employees' | 'profile' | 'vision-mission' | 'villages' | 'posyandu' | 'spm';
+export type MainViewType = 'employees' | 'attendance' | 'profile' | 'vision-mission' | 'villages' | 'posyandu' | 'spm';
 
 interface HeaderProps {
   puskesmasInfo: PuskesmasInfo;
@@ -44,7 +49,11 @@ interface HeaderProps {
   onLogout?: () => void;
   syncStatus?: SyncStatus;
   isCloudSyncing?: boolean;
+  isOnline?: boolean;
+  pendingSyncCount?: number;
   onManualCloudSync?: () => void;
+  onOpenSyncManager?: () => void;
+  onPullCloudData?: () => void;
   onViewChange: (view: MainViewType) => void;
   onAddNew: () => void;
   onPrintRekap: () => void;
@@ -69,7 +78,11 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   syncStatus = 'connected',
   isCloudSyncing = false,
+  isOnline = true,
+  pendingSyncCount = 0,
   onManualCloudSync,
+  onOpenSyncManager,
+  onPullCloudData,
   onViewChange,
   onAddNew,
   onPrintRekap,
@@ -83,16 +96,48 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar
 }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+      const timeStr = now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setCurrentTime(`${dateStr} • ${timeStr} WITA`);
+    };
+
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header id="main-header" className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs print:hidden">
       {/* Top Meta Identity Bar with Top-Right Login / Logout & Profile */}
-      <div className="bg-slate-950 text-slate-300 px-4 sm:px-8 py-2 text-xs font-medium flex flex-wrap justify-between items-center gap-2.5 border-b border-slate-800">
-        <div className="flex items-center gap-2 text-slate-300">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-xs shadow-emerald-400/50"></span>
-          <span className="font-semibold text-slate-200">
-            Pemerintah Kabupaten Sikka &bull; Dinkes &bull; <span className="text-white font-bold">{puskesmasInfo.fullName}</span>
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-slate-300 px-4 sm:px-8 py-2 text-xs font-medium flex flex-wrap justify-between items-center gap-2.5 border-b border-slate-800/80 shadow-inner">
+        <div className="flex items-center gap-2.5 text-slate-300">
+          <div className="relative flex items-center justify-center">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
+          </div>
+          <span className="font-medium text-slate-300 text-[11px] sm:text-xs">
+            Pemerintah Kab. Sikka &bull; Dinas Kesehatan &bull; <strong className="text-white font-bold tracking-tight">{puskesmasInfo.fullName}</strong>
           </span>
+          {currentTime && (
+            <span className="hidden 2xl:inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900/90 px-2 py-0.5 rounded-md border border-slate-800">
+              <ClockIcon className="w-3 h-3 text-emerald-400" />
+              <span>{currentTime}</span>
+            </span>
+          )}
         </div>
 
         {/* Top-Right Area: Role Mode Badge + Data Lock Badge + Cloud Database Status + Login / Shyllpb Account & Logout */}
@@ -101,21 +146,21 @@ export const Header: React.FC<HeaderProps> = ({
           {isAdmin ? (
             <div 
               id="role-mode-badge-admin"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold shadow-inner"
-              title="Hak Akses: Administrator (Dapat menambah, mengubah, dan menghapus seluruh data)"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 font-semibold shadow-xs ring-1 ring-emerald-500/20"
+              title="Hak Akses: Administrator Resmi (@shyllpb) - Dapat menambah, mengubah, dan menghapus seluruh data"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[10px] text-emerald-200">Mode Admin (Edit Aktif)</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-[10px] text-emerald-200">Mode Admin Aktif (Akses Penuh)</span>
             </div>
           ) : (
             <button 
               id="role-mode-badge-viewer"
               onClick={onOpenLogin}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-800/60 text-amber-300 font-semibold shadow-inner cursor-pointer hover:bg-amber-900/80 transition-colors"
-              title="Hak Akses: Pengunjung / Staf (Hanya Lihat). Klik untuk Login sebagai Admin."
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 font-semibold shadow-xs cursor-pointer hover:bg-amber-900/90 transition-all ring-1 ring-amber-500/20 hover:scale-102"
+              title="Hak Akses: Staf / Tamu (Terkunci & Hanya Lihat). Klik untuk Login sebagai Administrator."
             >
-              <Eye className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[10px] text-amber-200">Mode Hanya Lihat (Read-Only)</span>
+              <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-[10px] text-amber-200 font-bold">Terkunci (Hanya Lihat) &bull; Login Admin &rarr;</span>
             </button>
           )}
 
@@ -123,35 +168,78 @@ export const Header: React.FC<HeaderProps> = ({
           <div 
             id="data-locked-protection-badge"
             className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/70 border border-blue-800/60 text-blue-300 font-medium shadow-inner"
-            title="Sistem Penguncian Data Aktif: Data tidak akan terhapus saat Login/Logout maupun Refresh"
+            title="Sistem Pengamanan Database: Data tetap terkunci aman dan tidak hilang saat refresh / logout"
           >
-            <Lock className="w-3 h-3 text-blue-400" />
-            <span className="text-[10px] font-semibold text-blue-200">Data Terkunci & Aman</span>
+            <Shield className="w-3 h-3 text-blue-400 shrink-0" />
+            <span className="text-[10px] font-semibold text-blue-200">Data Terproteksi</span>
           </div>
 
-          {/* Cloud Sync Pill */}
+          {/* Cloud Sync & Offline Status Pill */}
           <div 
             id="cloud-database-status-pill"
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-emerald-400 font-medium shadow-inner"
-            title="Database Cloud Firestore Terhubung & Sinkron Real-time"
+            className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium shadow-inner ${
+              !isOnline
+                ? 'bg-amber-950/80 border-amber-500/50 text-amber-300 ring-1 ring-amber-500/20'
+                : pendingSyncCount > 0
+                ? 'bg-blue-950/80 border-blue-500/50 text-blue-300 ring-1 ring-blue-500/20'
+                : 'bg-slate-900 border-slate-800 text-emerald-400'
+            }`}
+            title={
+              !isOnline
+                ? 'Mode Offline Aktif: Perubahan tersimpan di perangkat ini & otomatis diunggah saat online'
+                : pendingSyncCount > 0
+                ? `Ada ${pendingSyncCount} data tersimpan offline yang siap disinkronkan ke Cloud`
+                : 'Database Cloud Firestore Terhubung & Sinkron Real-time'
+            }
           >
-            <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[10px] text-slate-300 font-mono">
-              {isCloudSyncing ? 'Sinkron Cloud...' : 'Cloud Terhubung'}
-            </span>
+            {onOpenSyncManager ? (
+              <button 
+                onClick={onOpenSyncManager}
+                className="flex items-center gap-1.5 hover:opacity-90 cursor-pointer text-left"
+              >
+                {!isOnline ? (
+                  <CloudOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                )}
+                <span className="text-[10px] font-mono">
+                  {isCloudSyncing ? (
+                    'Sinkronisasi...'
+                  ) : !isOnline ? (
+                    `Offline (${pendingSyncCount} antre)`
+                  ) : pendingSyncCount > 0 ? (
+                    `Online (${pendingSyncCount} pending)`
+                  ) : (
+                    'Cloud Aktif'
+                  )}
+                </span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {!isOnline ? (
+                  <CloudOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                )}
+                <span className="text-[10px] text-slate-300 font-mono">
+                  {isCloudSyncing ? 'Sinkronisasi...' : !isOnline ? 'Offline' : 'Cloud Aktif'}
+                </span>
+              </div>
+            )}
+
             {onManualCloudSync && (
               <button 
                 onClick={onManualCloudSync} 
                 disabled={isCloudSyncing}
                 className="hover:text-white transition-colors cursor-pointer ml-0.5"
-                title="Paksa Sinkronkan Database Cloud"
+                title="Paksa Sinkronkan Database Cloud Sekarang"
               >
-                <RefreshCw className={`w-2.5 h-2.5 ${isCloudSyncing ? 'animate-spin text-blue-400' : 'text-slate-400'}`} />
+                <RefreshCw className={`w-2.5 h-2.5 ${isCloudSyncing ? 'animate-spin text-blue-400' : 'text-slate-400 hover:text-emerald-300'}`} />
               </button>
             )}
           </div>
 
-          <span className="hidden sm:inline text-slate-600">&bull;</span>
+          <span className="hidden sm:inline text-slate-700">&bull;</span>
           <span className="hidden xl:inline text-slate-400">Kode: <strong className="text-white font-mono">{puskesmasInfo.codePuskesmas}</strong></span>
 
           {/* User Account / Profile & Dedicated Logout Buttons in TOP-RIGHT CORNER */}
@@ -203,11 +291,11 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="topbar-login-btn"
                 onClick={onOpenLogin}
-                className="inline-flex items-center gap-2 px-3.5 py-1 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 transition-all cursor-pointer ring-1 ring-blue-400/40"
-                title="Login Petugas (shyllpb@2026)"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-blue-600/30 transition-all cursor-pointer ring-1 ring-blue-400/40 hover:scale-102 active:scale-98"
+                title="Buka Kunci Input (Login Admin: shyllpb@2026)"
               >
-                <LogIn className="w-3.5 h-3.5 text-blue-200" />
-                <span>Login Admin</span>
+                <KeyRound className="w-3.5 h-3.5 text-blue-200" />
+                <span>Buka Kunci / Login Admin</span>
               </button>
             )
           )}
@@ -215,7 +303,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Header Bar */}
-      <div className="px-4 sm:px-8 py-3.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3.5">
+      <div className="px-4 sm:px-8 py-3 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3.5">
         {/* Left: Mobile Toggle & Main Navigation Switcher */}
         <div className="flex items-center gap-3 flex-wrap">
           {onToggleSidebar && (
@@ -242,7 +330,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Data Kepegawaian & Nakes Puskesmas"
             >
               <Users className={`w-3.5 h-3.5 ${currentView === 'employees' ? 'text-white' : 'text-blue-600'}`} />
-              <span>SIMPEG</span>
+              <span>SIMPEG Pegawai</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                 currentView === 'employees' ? 'bg-blue-800 text-blue-100' : 'bg-slate-200 text-slate-700'
               }`}>
@@ -250,19 +338,34 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </button>
 
-            {/* 2. Profil Puskesmas */}
+            {/* 2. Daftar Hadir Pegawai (Presensi) */}
+            <button
+              id="tab-nav-attendance"
+              onClick={() => onViewChange('attendance')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                currentView === 'attendance'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-1 ring-emerald-700'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/80'
+              }`}
+              title="Daftar Hadir Pegawai & Form Presensi Bulanan"
+            >
+              <CalendarCheck className={`w-3.5 h-3.5 ${currentView === 'attendance' ? 'text-white' : 'text-emerald-600'}`} />
+              <span>Daftar Hadir</span>
+            </button>
+
+            {/* 3. Profil Puskesmas */}
             <button
               id="tab-nav-profile"
               onClick={() => onViewChange('profile')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 currentView === 'profile'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-1 ring-emerald-700'
+                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20 ring-1 ring-teal-700'
                   : 'text-slate-700 hover:text-slate-900 hover:bg-white/80'
               }`}
-              title="Profil Lembaga & Fasilitas Puskesmas"
+              title="Profil Lembaga, Layanan & Fasilitas Puskesmas"
             >
-              <Building2 className={`w-3.5 h-3.5 ${currentView === 'profile' ? 'text-white' : 'text-emerald-600'}`} />
-              <span>Profil</span>
+              <Building2 className={`w-3.5 h-3.5 ${currentView === 'profile' ? 'text-white' : 'text-teal-600'}`} />
+              <span>Profil Lembaga</span>
             </button>
 
             {/* 3. Visi & Misi */}
@@ -292,7 +395,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Matriks Demografi & Wilayah 5 Desa Binaan"
             >
               <MapPin className={`w-3.5 h-3.5 ${currentView === 'villages' ? 'text-white' : 'text-cyan-600'}`} />
-              <span>5 Desa</span>
+              <span>5 Desa Binaan</span>
             </button>
 
             {/* 5. Data Posyandu */}
@@ -307,7 +410,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Data 16 Posyandu, Jadwal & Kader"
             >
               <HeartHandshake className={`w-3.5 h-3.5 ${currentView === 'posyandu' ? 'text-white' : 'text-pink-600'}`} />
-              <span>Posyandu</span>
+              <span>16 Posyandu</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
                 currentView === 'posyandu' ? 'bg-pink-800 text-pink-100' : 'bg-slate-200 text-slate-700'
               }`}>
@@ -343,7 +446,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 hover:shadow-md hover:shadow-blue-600/20'
                 : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200'
             }`}
-            title={isAdmin ? "Tambah Data Pegawai / Nakes Baru" : "Hanya Admin yang dapat menambah pegawai (Klik untuk Login)"}
+            title={isAdmin ? "Tambah Data Pegawai / Nakes Baru" : "Hanya Administrator yang dapat menambah pegawai (Klik untuk Login)"}
           >
             {isAdmin ? <UserPlus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-blue-600" />}
             <span>+ Tambah Pegawai</span>
@@ -387,6 +490,36 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden md:inline">Sheets</span>
             </button>
 
+            {/* Sync Manager Modal Trigger Button */}
+            {onOpenSyncManager && (
+              <button
+                id="btn-open-sync-manager"
+                onClick={onOpenSyncManager}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all shadow-2xs cursor-pointer ${
+                  !isOnline
+                    ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                    : pendingSyncCount > 0
+                    ? 'bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                }`}
+                title="Pusat Sinkronisasi Data Online & Offline"
+              >
+                {!isOnline ? (
+                  <CloudOff className="w-3.5 h-3.5 text-amber-600" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-blue-600" />
+                )}
+                <span className="hidden sm:inline">
+                  {!isOnline ? 'Offline' : 'Sync Cloud'}
+                </span>
+                {pendingSyncCount > 0 && (
+                  <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-black">
+                    {pendingSyncCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Cetak Rekap List */}
             <button
               id="btn-print-rekap"
@@ -395,7 +528,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Cetak Laporan Rekapitulasi Pegawai"
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden md:inline">Cetak Rekap</span>
+              <span className="hidden md:inline">Cetak</span>
             </button>
 
             {/* PC Desktop App Button */}
@@ -492,3 +625,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Navigation,
   UserCheck,
-  Heart
+  Heart,
+  Lock
 } from 'lucide-react';
 import { VillageTerritory } from '../types/profileTerritory';
 
@@ -16,6 +17,7 @@ interface EditVillageModalProps {
   isOpen: boolean;
   onClose: () => void;
   village: VillageTerritory | null;
+  isAdmin?: boolean;
   onSave: (updatedVillage: VillageTerritory) => void;
 }
 
@@ -23,6 +25,7 @@ export const EditVillageModal: React.FC<EditVillageModalProps> = ({
   isOpen,
   onClose,
   village,
+  isAdmin = false,
   onSave
 }) => {
   const [formData, setFormData] = useState<VillageTerritory | null>(null);
@@ -56,6 +59,10 @@ export const EditVillageModal: React.FC<EditVillageModalProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Akses Ditolak: Hanya Administrator yang berwenang menyimpan perubahan data desa.');
+      return;
+    }
     if (formData) {
       onSave(formData);
       onClose();
@@ -75,8 +82,14 @@ export const EditVillageModal: React.FC<EditVillageModalProps> = ({
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white">
-                Edit Data Desa & Kependudukan: {formData.name}
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <span>Edit Data Desa & Kependudukan: {formData.name}</span>
+                {!isAdmin && (
+                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold rounded-full inline-flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>Hanya Lihat (Terkunci)</span>
+                  </span>
+                )}
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 Wilayah Kerja UPT Puskesmas Boganatar &bull; Kec. Talibura
@@ -93,6 +106,16 @@ export const EditVillageModal: React.FC<EditVillageModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
+          {!isAdmin && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-bold">Mode Terkunci (Pratinjau / Hanya Lihat)</strong>
+                <span>Anda masuk sebagai pengguna umum. Hanya akun <strong>Administrator</strong> yang memiliki hak akses untuk mengubah dan menyimpan data kependudukan desa.</span>
+              </div>
+            </div>
+          )}
+
           {/* Section 1: Profil Geografis & Aparat Desa */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-slate-200">
@@ -425,14 +448,27 @@ export const EditVillageModal: React.FC<EditVillageModalProps> = ({
             >
               Batal
             </button>
-            <button
-              id="btn-save-village-data"
-              type="submit"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Save className="w-4 h-4" />
-              <span>Simpan Data Desa</span>
-            </button>
+            {isAdmin ? (
+              <button
+                id="btn-save-village-data"
+                type="submit"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Data Desa</span>
+              </button>
+            ) : (
+              <button
+                id="btn-save-village-data"
+                type="button"
+                disabled
+                className="px-4 py-2 bg-slate-200 text-slate-500 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed border border-slate-300"
+                title="Hanya Administrator yang dapat menyimpan perubahan"
+              >
+                <Lock className="w-4 h-4 text-slate-400" />
+                <span>Terkunci (Khusus Admin)</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

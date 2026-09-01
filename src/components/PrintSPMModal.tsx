@@ -224,7 +224,7 @@ export const PrintSPMModal: React.FC<PrintSPMModalProps> = ({
                       <th className="border border-slate-400 p-1 w-16">Ds. Kringa</th>
                       <th className="border border-slate-400 p-1 w-16">Ds. Timutawa</th>
                       <th className="border border-slate-400 p-1 w-16">Ds. Hikong</th>
-                      <th className="border border-slate-400 p-1 w-16">Ds. Udekduen</th>
+                      <th className="border border-slate-400 p-1 w-16">Ds. Udek Duen</th>
                       <th className="border border-slate-400 p-1 w-16">Ds. Ojang</th>
                       <th className="border border-slate-400 p-1 w-16 font-black bg-slate-200">Total Puskesmas</th>
                     </tr>

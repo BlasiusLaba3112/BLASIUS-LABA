@@ -16,7 +16,8 @@ import {
   Clock,
   ArrowUpDown,
   FileText,
-  Lock
+  Lock,
+  MapPin
 } from 'lucide-react';
 import { Employee } from '../types/employee';
 import { WORK_UNITS, EMPLOYMENT_STATUSES } from '../data/initialData';
@@ -93,7 +94,9 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       emp.jobTitle.toLowerCase().includes(q) ||
       emp.department.toLowerCase().includes(q) ||
       emp.major.toLowerCase().includes(q) ||
-      emp.strNumber.toLowerCase().includes(q);
+      emp.strNumber.toLowerCase().includes(q) ||
+      (emp.assignedVillage && emp.assignedVillage.toLowerCase().includes(q)) ||
+      (emp.villageRole && emp.villageRole.toLowerCase().includes(q));
 
     const matchesStatus = statusFilter === 'ALL' || 
       emp.employmentStatus === statusFilter ||
@@ -130,7 +133,46 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
   const hasActiveFilters = searchQuery || statusFilter !== 'ALL' || unitFilter !== 'ALL' || categoryFilter !== 'ALL';
 
   return (
-    <div id="employee-table-container" className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print:hidden">
+    <div id="employee-table-container" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden print:hidden">
+      {/* Security Status Notification Banner */}
+      {!isAdmin ? (
+        <div id="security-locked-banner-table" className="px-4 py-3 bg-gradient-to-r from-amber-500/10 via-amber-50 to-amber-500/10 border-b border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300">
+              <Lock className="w-4 h-4 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                <span>Sistem Terkunci (Mode Hanya Lihat / Staf)</span>
+                <span className="px-1.5 py-0.2 bg-amber-200/80 text-amber-900 text-[10px] font-bold rounded">Read-Only</span>
+              </p>
+              <p className="text-[11px] text-amber-800">
+                Fitur Tambah Pegawai, Edit Data, Hapus, dan Upload Berkas dikunci aman khusus <strong>ADMINISTRATOR (@shyllpb)</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onAddNew}
+            className="self-start sm:self-center px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-200" />
+            <span>Buka Kunci / Login Admin</span>
+          </button>
+        </div>
+      ) : (
+        <div id="security-admin-banner-table" className="px-4 py-2.5 bg-gradient-to-r from-emerald-500/10 via-emerald-50 to-emerald-500/10 border-b border-emerald-200/80 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <p className="text-xs text-emerald-900">
+              <strong>Sesi Administrator Aktif (@shyllpb)</strong> &bull; Akses penuh untuk Input Data Pegawai, Update Profil, 5 Desa, 16 Posyandu & 12 SPM.
+            </p>
+          </div>
+          <span className="hidden md:inline-flex px-2 py-0.5 bg-emerald-200 text-emerald-900 text-[10px] font-mono font-bold rounded-full">
+            Full Access
+          </span>
+        </div>
+      )}
+
       {/* Table Toolbar & Filters */}
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
         {/* Search Box */}
@@ -355,7 +397,15 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                     {/* Jabatan & Unit Kerja */}
                     <td className="py-3.5 px-4">
                       <div>
-                        <p className="font-semibold text-slate-800 line-clamp-1">{emp.jobTitle}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-slate-800 line-clamp-1">{emp.jobTitle}</p>
+                          {(emp.isVillageHealthWorker || emp.assignedVillage) && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[9px] font-bold">
+                              <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+                              {emp.assignedVillage || 'Nakes Desa'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                           <Building className="w-3 h-3 text-slate-400 flex-shrink-0" />
                           <span className="truncate">{emp.department}</span>

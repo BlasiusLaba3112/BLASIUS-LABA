@@ -21,6 +21,7 @@ interface EditSPMModalProps {
   onClose: () => void;
   indicator: SPMIndicator | null;
   employees: Employee[];
+  isAdmin?: boolean;
   onSave: (updatedIndicator: SPMIndicator) => void;
 }
 
@@ -29,6 +30,7 @@ export const EditSPMModal: React.FC<EditSPMModalProps> = ({
   onClose,
   indicator,
   employees,
+  isAdmin = true,
   onSave,
 }) => {
   const [formData, setFormData] = useState<SPMIndicator | null>(null);
@@ -145,6 +147,10 @@ export const EditSPMModal: React.FC<EditSPMModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Akses Ditolak: Hanya Administrator (@shyllpb) yang dapat mengubah data indikator SPM.');
+      return;
+    }
     onSave({
       ...formData,
       updatedAt: new Date().toISOString(),
@@ -494,10 +500,14 @@ export const EditSPMModal: React.FC<EditSPMModalProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className={`px-5 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer ${
+              isAdmin 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-amber-200 text-amber-900 border border-amber-400 hover:bg-amber-300'
+            }`}
           >
             <Save className="w-4 h-4" />
-            <span>Simpan Perubahan SPM</span>
+            <span>{isAdmin ? 'Simpan Perubahan SPM' : 'Terkunci (Hanya Admin)'}</span>
           </button>
         </div>
       </div>

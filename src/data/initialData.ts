@@ -138,6 +138,15 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     strIsLifetime: true,
     sipNumber: '503/089/SIPB/DPMPTSP/2023',
     sipExpiryDate: '2028-02-10',
+    isVillageHealthWorker: true,
+    assignedVillage: 'Desa Kringa',
+    villageFacilityType: 'Puskesmas Induk',
+    villageRole: 'Bidan Koordinator & Pembina Wilayah Desa Kringa',
+    assignedPosyandus: ['Posyandu Mawar I', 'Posyandu Melati II'],
+    villageAssignmentSK: '800/PKM-BOG/SK-BINWIL/01/2024',
+    villageAssignmentTMT: '2024-01-02',
+    villageServiceSchedule: 'Senin - Sabtu (08.00 - 14.00 WITA) & Jadwal Posyandu Tgl 08-12',
+    villageNotes: 'Koordinator pelayanan maternal neonatal dan pemantauan balita stunting di wilayah binaan Desa Kringa.',
     documents: [
       { id: 'doc-7', type: 'SK', title: 'SK Penugasan Bidan Koordinator', fileName: 'SK_Bikor_Imakulata.pdf', fileSize: '980 KB', uploadDate: '2023-01-20' },
       { id: 'doc-8', type: 'STR', title: 'STR Bidan Registrasi Nasional', fileName: 'STR_Bidan_Imakulata.pdf', fileSize: '810 KB', uploadDate: '2023-02-14' },
@@ -469,11 +478,20 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     strIsLifetime: true,
     sipNumber: '503/118/SIPB/DPMPTSP/2024',
     sipExpiryDate: '2029-05-12',
+    isVillageHealthWorker: true,
+    assignedVillage: 'Desa Timutawa',
+    villageFacilityType: 'Pustu',
+    villageRole: 'Bidan Desa Pustu Timutawa',
+    assignedPosyandus: ['Posyandu Flamboyan I', 'Posyandu Anggrek II'],
+    villageAssignmentSK: '800/PKM-BOG/SK-BIDES/04/2024',
+    villageAssignmentTMT: '2024-06-01',
+    villageServiceSchedule: 'Senin - Sabtu (08.00 - 14.00 WITA) & Jadwal Posyandu Tgl 10 & 14',
+    villageNotes: 'Penanggung jawab posyandu balita & ibu hamil Desa Timutawa dan rujukan ILP.',
     documents: [
       { id: 'doc-26', type: 'SK', title: 'SK PPPK Paruh Waktu Bidan Desa', fileName: 'SK_PPPK_PW_Elisabeth.pdf', fileSize: '1.1 MB', uploadDate: '2024-06-10' },
       { id: 'doc-27', type: 'STR', title: 'STR Bidan Seumur Hidup', fileName: 'STR_Elisabeth_Erna.pdf', fileSize: '790 KB', uploadDate: '2024-06-12' },
     ],
-    notes: 'Penanggung jawab Posyandu & Pustu Desa Wailamun pelayanan ibu dan anak.',
+    notes: 'Penanggung jawab Posyandu & Pustu Desa Timutawa pelayanan ibu dan anak.',
     createdAt: '2024-06-10T08:00:00Z',
     updatedAt: '2024-08-01T10:00:00Z',
   },
@@ -510,6 +528,15 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     strIsLifetime: true,
     sipNumber: '503/156/SIPP/DPMPTSP/2024',
     sipExpiryDate: '2029-10-04',
+    isVillageHealthWorker: true,
+    assignedVillage: 'Desa Kringa',
+    villageFacilityType: 'Pustu',
+    villageRole: 'Perawat Penanggung Jawab Pustu Kringa',
+    assignedPosyandus: ['Posyandu Kringa Induk', 'Posyandu Kringa Barat'],
+    villageAssignmentSK: '800/PKM-BOG/SK-PERAWAT/05/2024',
+    villageAssignmentTMT: '2024-06-01',
+    villageServiceSchedule: 'Senin - Sabtu (08.00 - 14.00 WITA) & Posyandu Lansia',
+    villageNotes: 'Pelayanan asuhan keperawatan pustu, prolanis hipertensi/DM, dan kunjungan rumah lansia.',
     documents: [
       { id: 'doc-28', type: 'SK', title: 'SK PPPK Paruh Waktu Perawat', fileName: 'SK_PPPK_PW_Fransiskus.pdf', fileSize: '1.2 MB', uploadDate: '2024-06-10' },
       { id: 'doc-29', type: 'STR', title: 'STR Perawat Terampil', fileName: 'STR_Frans_Siga.pdf', fileSize: '810 KB', uploadDate: '2024-06-15' },
@@ -582,6 +609,8 @@ export const JOB_TITLES_SUGGESTIONS = [
   'Bidan Koordinator (Bikor)',
   'Bidan Pelaksana Lanjutan',
   'Bidan Terampil',
+  'Bidan Desa (Bides)',
+  'Perawat Desa (Pustu/Poskesdes)',
   'Pranata Laboratorium Kesehatan Terampil',
   'Apoteker Penanggung Jawab Farmasi',
   'Tenaga Teknis Kefarmasian (Asisten Apoteker)',
@@ -595,3 +624,38 @@ export const JOB_TITLES_SUGGESTIONS = [
   'Petugas Keamanan / Satpam',
   'Petugas Kebersihan / Pramubakti'
 ];
+
+export const BOGANATAR_VILLAGES = [
+  'Desa Kringa',
+  'Desa Timutawa',
+  'Desa Hikong',
+  'Desa Udek Duen',
+  'Desa Ojang'
+];
+
+export const VILLAGE_FACILITIES: Array<'Pustu' | 'Poskesdes' | 'Polindes' | 'Posyandu' | 'Puskesmas Induk'> = [
+  'Pustu',
+  'Poskesdes',
+  'Polindes',
+  'Posyandu',
+  'Puskesmas Induk'
+];
+
+export const VILLAGE_ROLES = [
+  'Bidan Desa (Bides)',
+  'Perawat Desa (Perawat Pustu/Poskesdes)',
+  'Petugas Pembina Wilayah Desa (Binwil)',
+  'Koordinator Posyandu Integrasi Layanan Primer (ILP)',
+  'Petugas Pendamping Gizi & Penanganan Stunting Desa',
+  'Sanitarian / Pengawas Kesling Desa',
+  'Petugas Surveilans Penyakit Desa (P2P)'
+];
+
+export const VILLAGE_POSYANDU_MAP: Record<string, string[]> = {
+  'Desa Kringa': ['Posyandu Mawar I', 'Posyandu Melati II', 'Posyandu Lansia Sejahtera'],
+  'Desa Timutawa': ['Posyandu Flamboyan I', 'Posyandu Anggrek II', 'Posbindu PTM Timutawa'],
+  'Desa Hikong': ['Posyandu Kenanga I', 'Posyandu Cempaka II', 'Posyandu Lansia Mawar Putih'],
+  'Desa Udek Duen': ['Posyandu Kasih Kasih I', 'Posyandu Mawar Sehat II', 'Posbindu Lansia Udek Duen'],
+  'Desa Udekduen': ['Posyandu Kasih Kasih I', 'Posyandu Mawar Sehat II', 'Posbindu Lansia Udek Duen'],
+  'Desa Ojang': ['Posyandu Kasih Ibu I', 'Posyandu Melati Ojang II', 'Posbindu Lansia Sehat']
+};

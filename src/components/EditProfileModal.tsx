@@ -19,6 +19,7 @@ interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   profileData: PuskesmasProfileData;
+  isAdmin?: boolean;
   onSave: (updatedData: PuskesmasProfileData) => void;
 }
 
@@ -26,6 +27,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   isOpen,
   onClose,
   profileData,
+  isAdmin = true,
   onSave
 }) => {
   const [formData, setFormData] = useState<PuskesmasProfileData>(() => {
@@ -105,6 +107,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Akses Ditolak: Hanya Administrator (@shyllpb) yang dapat menyimpan perubahan profil.');
+      return;
+    }
     onSave({
       ...formData,
       updatedAt: new Date().toISOString()
@@ -525,10 +531,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <button
               id="btn-save-edit-profile"
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ${
+                isAdmin 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-amber-200 text-amber-900 border border-amber-400 hover:bg-amber-300'
+              }`}
             >
               <Save className="w-4 h-4" />
-              <span>Simpan Perubahan Profil</span>
+              <span>{isAdmin ? 'Simpan Perubahan Profil' : 'Terkunci (Hanya Admin)'}</span>
             </button>
           </div>
         </form>
